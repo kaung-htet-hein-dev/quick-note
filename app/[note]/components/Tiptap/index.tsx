@@ -11,7 +11,6 @@ import { uploadNoteImage, saveNote } from "../../utils";
 import { useNoteEditorContext } from "../../hooks/useNoteContext";
 
 type TiptapProps = {
-  noteId?: string;
   initialContent?: string;
 };
 
@@ -81,11 +80,12 @@ const insertImageFiles = async (
   }
 };
 
-const Tiptap = ({ noteId, initialContent = "" }: TiptapProps) => {
+const Tiptap = ({ initialContent = "" }: TiptapProps) => {
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const parsedInitialContent = parseStoredContent(initialContent);
-  const { isAutoSaveEnabled, registerSaveNowHandler } = useNoteEditorContext();
+  const { isAutoSaveEnabled, registerSaveNowHandler, noteID } =
+    useNoteEditorContext();
 
   const editor = useEditor({
     extensions: [
@@ -101,13 +101,13 @@ const Tiptap = ({ noteId, initialContent = "" }: TiptapProps) => {
     contentType: parsedInitialContent.contentType,
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
-      if (!isAutoSaveEnabled || !noteId) return;
+      if (!isAutoSaveEnabled || !noteID) return;
 
       if (saveTimer.current) clearTimeout(saveTimer.current);
 
       saveTimer.current = setTimeout(() => {
         const editorJson = editor.getJSON();
-        void saveNote(noteId, JSON.stringify(editorJson));
+        void saveNote(noteID, JSON.stringify(editorJson));
       }, 1000);
     },
     editorProps: {
@@ -150,7 +150,7 @@ const Tiptap = ({ noteId, initialContent = "" }: TiptapProps) => {
         event.preventDefault();
         setIsDraggingImage(false);
 
-        void insertImageFiles(files, noteId, (src, name) => {
+        void insertImageFiles(files, noteID, (src, name) => {
           editor
             .chain()
             .focus()
@@ -169,7 +169,7 @@ const Tiptap = ({ noteId, initialContent = "" }: TiptapProps) => {
 
         event.preventDefault();
 
-        void insertImageFiles(files, noteId, (src, name) => {
+        void insertImageFiles(files, noteID, (src, name) => {
           editor
             .chain()
             .focus()
@@ -184,16 +184,16 @@ const Tiptap = ({ noteId, initialContent = "" }: TiptapProps) => {
 
   useEffect(() => {
     const saveCurrentEditorContent = async () => {
-      if (!editor || !noteId) {
+      if (!editor || !noteID) {
         return false;
       }
 
       const editorJson = editor.getJSON();
-      return saveNote(noteId, JSON.stringify(editorJson));
+      return saveNote(noteID, JSON.stringify(editorJson));
     };
 
     registerSaveNowHandler(saveCurrentEditorContent);
-  }, [editor, noteId]);
+  }, [editor, noteID]);
 
   useEffect(() => {
     return () => {

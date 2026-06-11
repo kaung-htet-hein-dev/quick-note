@@ -115,3 +115,19 @@ export const updateNoteSlug = async (
 
   return !error;
 };
+
+export const updateNotePassword = async (
+  noteIdOrSlug: string,
+  password: string
+): Promise<boolean> => {
+  if (!supabase) return false;
+
+  const column = isUuid(noteIdOrSlug) ? "id" : "slug";
+
+  const { error } = await supabase
+    .from("notes")
+    .update({ password, updated_at: new Date().toISOString() })
+    .eq(column, noteIdOrSlug);
+
+  return !error;
+};
