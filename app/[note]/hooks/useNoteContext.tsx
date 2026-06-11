@@ -11,6 +11,8 @@ type NoteEditorContextValue = {
   saveNow: () => Promise<boolean>;
   registerSaveNowHandler: (handler: () => Promise<boolean>) => void;
   noteID: string;
+  isUnlocked: boolean;
+  setIsUnlocked: (p: boolean) => void;
 };
 
 const NoteEditorContext = createContext<NoteEditorContextValue | null>(null);
@@ -22,6 +24,7 @@ type NoteEditorProviderProps = {
 export function NoteEditorProvider({
   children
 }: Readonly<NoteEditorProviderProps>) {
+  const [isUnlocked, setIsUnlocked] = useState(false);
   const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
   const [saveNowHandler, setSaveNowHandler] = useState<SaveNowHandler>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -52,7 +55,9 @@ export function NoteEditorProvider({
       isSaving,
       saveNow,
       registerSaveNowHandler,
-      noteID: note
+      noteID: note,
+      isUnlocked,
+      setIsUnlocked
     }),
     [
       isAutoSaveEnabled,
@@ -60,6 +65,7 @@ export function NoteEditorProvider({
       isSaving,
       saveNow,
       registerSaveNowHandler,
+      isUnlocked,
       note
     ]
   );

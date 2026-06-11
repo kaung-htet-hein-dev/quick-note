@@ -7,7 +7,7 @@ import PasswordModal from "../PasswordModal";
 
 const FloatingActionButtons = () => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const { noteID } = useNoteEditorContext();
+  const { noteID, isUnlocked, setIsUnlocked } = useNoteEditorContext();
 
   const onClickNew = () => {
     if (!globalThis.window) return;
@@ -39,7 +39,28 @@ const FloatingActionButtons = () => {
       return;
     }
 
+    setIsUnlocked(true);
     setIsPasswordModalOpen(false);
+  };
+
+  const onUnlock = async () => {
+    const success = await updateNotePassword(noteID, null);
+
+    if (!success) {
+      alert("Failed to remove password. Please try again.");
+      return;
+    }
+
+    setIsUnlocked(false);
+    setIsPasswordModalOpen(false);
+  };
+
+  const passwordAction = () => {
+    if (isUnlocked) {
+      onUnlock();
+    } else {
+      onClickLock();
+    }
   };
 
   return (
@@ -48,25 +69,10 @@ const FloatingActionButtons = () => {
         <button
           type="button"
           aria-label="Lock note"
-          onClick={onClickLock}
+          onClick={passwordAction}
           className="flex h-13 w-13 items-center justify-center rounded-full border border-border bg-surface text-fg transition-all duration-200 hover:-translate-y-0.5"
         >
-          {true ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-              />
-            </svg>
-          ) : (
+          {isUnlocked ? (
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -79,6 +85,21 @@ const FloatingActionButtons = () => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+              />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="size-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
               />
             </svg>
           )}
@@ -110,7 +131,14 @@ const FloatingActionButtons = () => {
       <PasswordModal
         isOpen={isPasswordModalOpen}
         onCancel={onCancelLock}
-        onLock={onConfirmLock}
+        onAction={onConfirmLock}
+        title={isUnlocked ? "Unlock Note" : "Lock Note"}
+        body={
+          isUnlocked
+            ? "Type your password to unlock the note."
+            : "Type your password to lock the note."
+        }
+        actionLabel={isUnlocked ? "Unlock" : "Lock"}
       />
     </>
   );

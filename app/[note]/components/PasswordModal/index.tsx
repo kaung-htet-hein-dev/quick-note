@@ -4,11 +4,21 @@ import { useState } from "react";
 
 type PasswordModalProps = {
   isOpen: boolean;
-  onCancel: () => void;
-  onLock: (password: string) => void;
+  onCancel?: () => void;
+  onAction: (password: string) => void;
+  title: string;
+  body: string;
+  actionLabel?: string;
 };
 
-const PasswordModal = ({ isOpen, onCancel, onLock }: PasswordModalProps) => {
+const PasswordModal = ({
+  isOpen,
+  onCancel,
+  onAction,
+  title,
+  body,
+  actionLabel = "Lock"
+}: PasswordModalProps) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -19,11 +29,11 @@ const PasswordModal = ({ isOpen, onCancel, onLock }: PasswordModalProps) => {
   const handleCancel = () => {
     setPassword("");
     setShowPassword(false);
-    onCancel();
+    onCancel?.();
   };
 
   const handleLock = () => {
-    onLock(password);
+    onAction(password);
     setPassword("");
     setShowPassword(false);
   };
@@ -31,17 +41,26 @@ const PasswordModal = ({ isOpen, onCancel, onLock }: PasswordModalProps) => {
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-5 shadow-lg">
-        <h2 className="text-title text-fg">Lock note</h2>
-        <p className="mt-1 text-label text-muted">
-          Set a password to lock this note.
-        </p>
+        <h2 className="text-title text-fg">{title}</h2>
+        <p className="mt-1 text-label text-muted">{body}</p>
 
         <div className="mt-4 relative">
           <input
+            autoFocus
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter password"
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleLock();
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                handleCancel();
+              }
+            }}
             className="text-label w-full rounded-md border border-border bg-bg px-3 py-2 pr-10 text-fg outline-none transition focus:border-(--primary) focus:ring-3 focus:ring-(--primary)/25"
           />
           <button
@@ -90,20 +109,22 @@ const PasswordModal = ({ isOpen, onCancel, onLock }: PasswordModalProps) => {
         </div>
 
         <div className="mt-4 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="inline-flex h-9 items-center rounded-md border border-border px-3 text-label text-muted transition hover:bg-bg hover:text-fg"
-          >
-            Cancel
-          </button>
+          {onCancel && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="inline-flex h-9 items-center rounded-md border border-border px-3 text-label text-muted transition hover:bg-bg hover:text-fg"
+            >
+              Cancel
+            </button>
+          )}
           <button
             type="button"
             onClick={handleLock}
             disabled={!password.trim()}
             className="inline-flex h-9 items-center rounded-md border border-(--primary) bg-(--primary) px-3 text-label text-(--primary-foreground) transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
           >
-            Lock
+            {actionLabel}
           </button>
         </div>
       </div>

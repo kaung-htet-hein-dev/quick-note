@@ -118,7 +118,7 @@ export const updateNoteSlug = async (
 
 export const updateNotePassword = async (
   noteIdOrSlug: string,
-  password: string
+  password: string | null
 ): Promise<boolean> => {
   if (!supabase) return false;
 
@@ -130,4 +130,46 @@ export const updateNotePassword = async (
     .eq(column, noteIdOrSlug);
 
   return !error;
+};
+
+export const checkExistAndProtected = async (
+  noteIdOrSlug: string
+): Promise<{ exists: boolean; isProtected: boolean }> => {
+  if (!supabase) return { exists: false, isProtected: false };
+
+  const column = isUuid(noteIdOrSlug) ? "id" : "slug";
+
+  const { data, error } = await supabase
+    .from("notes")
+    .select("password", { count: "exact" })
+    .eq(column, noteIdOrSlug)
+    .maybeSingle();
+
+  if (error || !data) {
+    return { exists: false, isProtected: false };
+  }
+
+  return { exists: true, isProtected: !!data.password };
+};
+
+export const unlockNote = async (
+  noteIdOrSlug: string,
+  password: string
+): Promise<Note | null> => {
+  if (!supabase) return null;
+
+  const column = isUuid(noteIdOrSlug) ? "id" : "slug";
+
+  const { data, error } = await supabase
+    .from("notes")
+    .select("*")
+    .eq(column, noteIdOrSlug)
+    .eq("password", password)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as Note;
 };
