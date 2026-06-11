@@ -1100,6 +1100,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tiptap/extension-image@npm:^3.26.0":
+  version: 3.26.0
+  resolution: "@tiptap/extension-image@npm:3.26.0"
+  peerDependencies:
+    "@tiptap/core": 3.26.0
+  checksum: 10c0/6d225b18e4fa300c25826fa2c03b77914d86732ed8127fdba81c36612c3622729ea74a7dd0eb80da997265c68d7994fda2fd833708d3857af56e9f5c603b16b2
+  languageName: node
+  linkType: hard
+
 "@tiptap/extension-italic@npm:^3.26.0":
   version: 3.26.0
   resolution: "@tiptap/extension-italic@npm:3.26.0"
@@ -1167,6 +1176,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tiptap/extension-placeholder@npm:^3.26.0":
+  version: 3.26.0
+  resolution: "@tiptap/extension-placeholder@npm:3.26.0"
+  peerDependencies:
+    "@tiptap/extensions": 3.26.0
+  checksum: 10c0/0d1398b8dd0c2a60b8d5ea85d670790c8bf7c993f41cf4e46b6c0c6a77a7bd5c12415120194125e1fe08f1d5873e78afdccd1e0b833d977d35a9760d13e8698c
+  languageName: node
+  linkType: hard
+
 "@tiptap/extension-strike@npm:^3.26.0":
   version: 3.26.0
   resolution: "@tiptap/extension-strike@npm:3.26.0"
@@ -1201,6 +1219,18 @@ __metadata:
     "@tiptap/core": 3.26.0
     "@tiptap/pm": 3.26.0
   checksum: 10c0/87f4dc970e9c5db4ae1b8a358335681c715ad1ef48df6fc33100ebfdbe3616eb12d5f8949540d2d955caf1c3c65e49b6e337d43b7d7d25c3fc79b475ba7f334e
+  languageName: node
+  linkType: hard
+
+"@tiptap/markdown@npm:^3.26.0":
+  version: 3.26.0
+  resolution: "@tiptap/markdown@npm:3.26.0"
+  dependencies:
+    marked: "npm:^17.0.1"
+  peerDependencies:
+    "@tiptap/core": 3.26.0
+    "@tiptap/pm": 3.26.0
+  checksum: 10c0/1872fe8b63502417f2341207b186b935e49e6b2b6e75e38f943f6ecb46af984cd6a749e6865d61b4d4605f2a5c69cbb24faa1841cb10d4faf9f8407bdf727b50
   languageName: node
   linkType: hard
 
@@ -3561,6 +3591,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"marked@npm:^17.0.1":
+  version: 17.0.6
+  resolution: "marked@npm:17.0.6"
+  bin:
+    marked: bin/marked.js
+  checksum: 10c0/77961fbb360511d6638491e097cb15b1ef5e643f27c25b9cd52aa3cd92e216fc3cda7dbfc6a10adb7922d1b38df132510df65de4afe6c53c7280772c9d4221bd
+  languageName: node
+  linkType: hard
+
 "math-intrinsics@npm:^1.1.0":
   version: 1.1.0
   resolution: "math-intrinsics@npm:1.1.0"
@@ -4109,6 +4148,9 @@ __metadata:
   resolution: "quick-note@workspace:."
   dependencies:
     "@tailwindcss/postcss": "npm:^4"
+    "@tiptap/extension-image": "npm:^3.26.0"
+    "@tiptap/extension-placeholder": "npm:^3.26.0"
+    "@tiptap/markdown": "npm:^3.26.0"
     "@tiptap/pm": "npm:^3.26.0"
     "@tiptap/react": "npm:^3.26.0"
     "@tiptap/starter-kit": "npm:^3.26.0"

@@ -4,7 +4,7 @@ const FloatingActionButtons = () => {
       <button
         type="button"
         aria-label="Lock note"
-        className="flex h-13 w-13 items-center justify-center rounded-full border border-border bg-surface text-fg shadow-[0_8px_20px_-8px_rgba(0,0,0,0.45)] transition-all duration-200 hover:-translate-y-0.5"
+        className="flex h-13 w-13 items-center justify-center rounded-full border border-border bg-surface text-fg transition-all duration-200 hover:-translate-y-0.5"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -25,7 +25,7 @@ const FloatingActionButtons = () => {
       <button
         type="button"
         aria-label="Create sub note"
-        className="flex h-13 w-13 items-center justify-center rounded-full border border-border bg-surface text-fg shadow-[0_12px_24px_-10px_rgba(0,0,0,0.55)] transition-all duration-200 hover:-translate-y-0.5"
+        className="flex h-13 w-13 items-center justify-center rounded-full border border-border bg-surface text-fg transition-all duration-200 hover:-translate-y-0.5"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
