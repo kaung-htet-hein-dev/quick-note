@@ -20,16 +20,31 @@ export const fetchOrCreateNote = async (
 
   if (existing) return existing as Note;
 
-  // Only auto-create when the param is a UUID (freshly generated from home page)
-  if (!isUuid(param)) return null;
+  const generatedId =
+    typeof globalThis.crypto?.randomUUID === "function"
+      ? globalThis.crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-  const { data: created } = await supabase
+  const noteId = isUuid(param) ? param : generatedId;
+  const noteSlug = param;
+
+  const { data: created, error: createError } = await supabase
     .from("notes")
-    .insert({ id: param, slug: param, content: "" })
+    .insert({ id: noteId, slug: noteSlug, content: "" })
     .select()
     .single();
 
-  return (created as Note) ?? null;
+  if (created) return created as Note;
+  if (!createError) return null;
+
+  // If insert failed due to a race condition (created elsewhere), fetch again.
+  const { data: afterInsert } = await supabase
+    .from("notes")
+    .select("*")
+    .eq(column, param)
+    .maybeSingle();
+
+  return (afterInsert as Note) ?? null;
 };
 
 export const saveNote = async (
@@ -63,4 +78,40 @@ export const uploadNoteImage = async (
 
   const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
   return data.publicUrl;
+};
+
+export const checkSlugExists = async (
+  slug: string,
+  excludeId?: string
+): Promise<boolean> => {
+  if (!supabase) return false;
+
+  let query = supabase
+    .from("notes")
+    .select("id", { count: "exact" })
+    .eq("slug", slug);
+
+  if (excludeId) {
+    query = query.neq("id", excludeId);
+  }
+
+  const { count, error } = await query;
+
+  return !error && count !== null && count > 0;
+};
+
+export const updateNoteSlug = async (
+  noteIdOrSlug: string,
+  newSlug: string
+): Promise<boolean> => {
+  if (!supabase) return false;
+
+  const column = isUuid(noteIdOrSlug) ? "id" : "slug";
+
+  const { error } = await supabase
+    .from("notes")
+    .update({ slug: newSlug, updated_at: new Date().toISOString() })
+    .eq(column, noteIdOrSlug);
+
+  return !error;
 };

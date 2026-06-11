@@ -9,6 +9,8 @@
   --muted: oklch(0.52 0.02 260);
   --border: oklch(0.9 0.01 260);
 
+  --white: oklch(0.99 0.01 260);
+
   --primary: oklch(0.56 0.15 245);
   --primary-foreground: oklch(0.99 0.01 260);
   --success: oklch(0.72 0.16 150);
@@ -26,6 +28,8 @@
   --foreground: oklch(0.95 0.01 260);
   --muted: oklch(0.74 0.02 260);
   --border: oklch(0.33 0.02 260);
+
+  --white: oklch(0.99 0.01 260);
 
   --primary: oklch(0.72 0.12 245);
   --primary-foreground: oklch(0.18 0.02 260);

@@ -85,8 +85,7 @@ const Tiptap = ({ noteId, initialContent = "" }: TiptapProps) => {
   const [isDraggingImage, setIsDraggingImage] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const parsedInitialContent = parseStoredContent(initialContent);
-  const { isAutoSaveEnabled, registerSaveNowHandler, clearSaveNowHandler } =
-    useNoteEditorContext();
+  const { isAutoSaveEnabled, registerSaveNowHandler } = useNoteEditorContext();
 
   const editor = useEditor({
     extensions: [
@@ -194,10 +193,6 @@ const Tiptap = ({ noteId, initialContent = "" }: TiptapProps) => {
     };
 
     registerSaveNowHandler(saveCurrentEditorContent);
-
-    return () => {
-      clearSaveNowHandler();
-    };
   }, [editor, noteId]);
 
   useEffect(() => {

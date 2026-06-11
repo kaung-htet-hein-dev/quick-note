@@ -1,5 +1,4 @@
-"use client";
-
+import { useParams } from "next/navigation";
 import { createContext, useContext, useMemo, useState } from "react";
 
 type SaveNowHandler = (() => Promise<boolean>) | null;
@@ -11,7 +10,7 @@ type NoteEditorContextValue = {
   isSaving: boolean;
   saveNow: () => Promise<boolean>;
   registerSaveNowHandler: (handler: () => Promise<boolean>) => void;
-  clearSaveNowHandler: () => void;
+  noteID: string;
 };
 
 const NoteEditorContext = createContext<NoteEditorContextValue | null>(null);
@@ -26,13 +25,10 @@ export function NoteEditorProvider({
   const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
   const [saveNowHandler, setSaveNowHandler] = useState<SaveNowHandler>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const { note } = useParams<{ note: string }>();
 
   const registerSaveNowHandler = (handler: () => Promise<boolean>) => {
     setSaveNowHandler(() => handler);
-  };
-
-  const clearSaveNowHandler = () => {
-    setSaveNowHandler(null);
   };
 
   const saveNow = async (): Promise<boolean> => {
@@ -56,7 +52,7 @@ export function NoteEditorProvider({
       isSaving,
       saveNow,
       registerSaveNowHandler,
-      clearSaveNowHandler
+      noteID: note
     }),
     [
       isAutoSaveEnabled,
@@ -64,7 +60,7 @@ export function NoteEditorProvider({
       isSaving,
       saveNow,
       registerSaveNowHandler,
-      clearSaveNowHandler
+      note
     ]
   );
 
