@@ -5,7 +5,42 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import { Markdown } from "@tiptap/markdown";
-import { useState } from "react";
+import type { Content } from "@tiptap/core";
+import { useEffect, useRef, useState } from "react";
+import { uploadNoteImage, saveNote } from "../../utils";
+import { useNoteEditorContext } from "../../hooks/useNoteContext";
+
+type TiptapProps = {
+  noteId?: string;
+  initialContent?: string;
+};
+
+type ParsedEditorContent = {
+  content: Content;
+  contentType?: "markdown";
+};
+
+const parseStoredContent = (value: string): ParsedEditorContent => {
+  if (!value.trim()) {
+    return { content: "", contentType: "markdown" };
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "type" in parsed &&
+      (parsed as { type?: string }).type === "doc"
+    ) {
+      return { content: parsed };
+    }
+  } catch {
+    // Fall back to markdown for legacy plain-text content.
+  }
+
+  return { content: value, contentType: "markdown" };
+};
 
 const fileToDataUrl = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -17,7 +52,6 @@ const fileToDataUrl = (file: File): Promise<string> => {
         reject(new Error("Failed to read image file"));
         return;
       }
-
       resolve(result);
     };
 
@@ -29,28 +63,58 @@ const fileToDataUrl = (file: File): Promise<string> => {
   });
 };
 
-const Tiptap = () => {
+const insertImageFiles = async (
+  files: File[],
+  noteId: string | undefined,
+  insert: (src: string, name: string) => void
+) => {
+  for (const file of files) {
+    let src: string | null = noteId
+      ? await uploadNoteImage(file, noteId)
+      : null;
+
+    if (!src) {
+      src = await fileToDataUrl(file);
+    }
+
+    insert(src, file.name);
+  }
+};
+
+const Tiptap = ({ noteId, initialContent = "" }: TiptapProps) => {
   const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const parsedInitialContent = parseStoredContent(initialContent);
+  const { isAutoSaveEnabled, registerSaveNowHandler, clearSaveNowHandler } =
+    useNoteEditorContext();
 
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Image.configure({
-        allowBase64: true
-      }),
+      Image.configure({ allowBase64: false, inline: false }),
       Placeholder.configure({
         placeholder: "Start writing...",
         emptyEditorClass: "is-editor-empty"
       }),
       Markdown
     ],
-    content: "",
-    contentType: "markdown",
+    content: parsedInitialContent.content,
+    contentType: parsedInitialContent.contentType,
     immediatelyRender: false,
+    onUpdate: ({ editor }) => {
+      if (!isAutoSaveEnabled || !noteId) return;
+
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+
+      saveTimer.current = setTimeout(() => {
+        const editorJson = editor.getJSON();
+        void saveNote(noteId, JSON.stringify(editorJson));
+      }, 1000);
+    },
     editorProps: {
       attributes: {
         class:
-          "tiptap-editor h-full w-full overflow-y-auto bg-bg px-5 py-4 text-body text-fg outline-none"
+          "tiptap-editor min-h-full w-full bg-bg px-5 py-4 text-body text-fg outline-none"
       },
       handleDOMEvents: {
         dragenter: (_view, event) => {
@@ -78,72 +142,76 @@ const Tiptap = () => {
         }
       },
       handleDrop: (_view, event) => {
-        const transfer = event.dataTransfer;
-        const files = transfer ? Array.from(transfer.files) : [];
-        const imageFiles = files.filter((file) =>
-          file.type.startsWith("image/")
+        const files = Array.from(event.dataTransfer?.files ?? []).filter((f) =>
+          f.type.startsWith("image/")
         );
 
-        if (!editor || imageFiles.length === 0) {
-          return false;
-        }
+        if (!editor || files.length === 0) return false;
 
         event.preventDefault();
         setIsDraggingImage(false);
 
-        void (async () => {
-          for (const file of imageFiles) {
-            const src = await fileToDataUrl(file);
-            editor
-              .chain()
-              .focus()
-              .setImage({
-                src,
-                alt: file.name,
-                title: file.name
-              })
-              .run();
-          }
-        })();
+        void insertImageFiles(files, noteId, (src, name) => {
+          editor
+            .chain()
+            .focus()
+            .setImage({ src, alt: name, title: name })
+            .run();
+        });
 
         return true;
       },
       handlePaste: (_view, event) => {
-        const clipboard = event.clipboardData;
-        const files = clipboard ? Array.from(clipboard.files) : [];
-        const imageFiles = files.filter((file) =>
-          file.type.startsWith("image/")
+        const files = Array.from(event.clipboardData?.files ?? []).filter((f) =>
+          f.type.startsWith("image/")
         );
 
-        if (!editor || imageFiles.length === 0) {
-          return false;
-        }
+        if (!editor || files.length === 0) return false;
 
         event.preventDefault();
 
-        void (async () => {
-          for (const file of imageFiles) {
-            const src = await fileToDataUrl(file);
-            editor
-              .chain()
-              .focus()
-              .setImage({
-                src,
-                alt: file.name,
-                title: file.name
-              })
-              .run();
-          }
-        })();
+        void insertImageFiles(files, noteId, (src, name) => {
+          editor
+            .chain()
+            .focus()
+            .setImage({ src, alt: name, title: name })
+            .run();
+        });
 
         return true;
       }
     }
   });
 
+  useEffect(() => {
+    const saveCurrentEditorContent = async () => {
+      if (!editor || !noteId) {
+        return false;
+      }
+
+      const editorJson = editor.getJSON();
+      return saveNote(noteId, JSON.stringify(editorJson));
+    };
+
+    registerSaveNowHandler(saveCurrentEditorContent);
+
+    return () => {
+      clearSaveNowHandler();
+    };
+  }, [editor, noteId]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, []);
+
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col">
-      <EditorContent editor={editor} className="h-full min-h-0 flex-1" />
+      <EditorContent
+        editor={editor}
+        className="h-full min-h-0 flex-1 overflow-y-auto"
+      />
 
       {isDraggingImage && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center rounded-xl border-2 border-dashed border-(--primary) bg-(--primary)/10 text-label text-fg">
