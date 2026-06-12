@@ -25,12 +25,12 @@ export const fetchOrCreateNote = async (
       ? globalThis.crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-  const noteId = isUuid(param) ? param : generatedId;
+  const noteID = isUuid(param) ? param : generatedId;
   const noteSlug = param;
 
   const { data: created, error: createError } = await supabase
     .from("notes")
-    .insert({ id: noteId, slug: noteSlug, content: "" })
+    .insert({ id: noteID, slug: noteSlug, content: "" })
     .select()
     .single();
 
@@ -48,27 +48,29 @@ export const fetchOrCreateNote = async (
 };
 
 export const saveNote = async (
-  noteId: string,
+  noteID: string,
   content: string
 ): Promise<boolean> => {
   if (!supabase) return false;
 
+  const column = isUuid(noteID) ? "id" : "slug";
+
   const { error } = await supabase
     .from("notes")
     .update({ content, updated_at: new Date().toISOString() })
-    .eq("id", noteId);
+    .eq(column, noteID);
 
   return !error;
 };
 
 export const uploadNoteImage = async (
   file: File,
-  noteId: string
+  noteID: string
 ): Promise<string | null> => {
   if (!supabase) return null;
 
   const ext = file.name.split(".").pop() ?? "bin";
-  const path = `notes/${noteId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const path = `notes/${noteID}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const { error } = await supabase.storage
     .from(STORAGE_BUCKET)
@@ -139,17 +141,26 @@ export const checkExistAndProtected = async (
 
   const column = isUuid(noteIdOrSlug) ? "id" : "slug";
 
-  const { data, error } = await supabase
+  const { count: existingCount, error: existingError } = await supabase
     .from("notes")
-    .select("password", { count: "exact" })
-    .eq(column, noteIdOrSlug)
-    .maybeSingle();
+    .select("id", { count: "exact", head: true })
+    .eq(column, noteIdOrSlug);
 
-  if (error || !data) {
+  if (existingError || !existingCount) {
     return { exists: false, isProtected: false };
   }
 
-  return { exists: true, isProtected: !!data.password };
+  const { count: protectedCount, error: protectedError } = await supabase
+    .from("notes")
+    .select("id", { count: "exact", head: true })
+    .eq(column, noteIdOrSlug)
+    .not("password", "is", null);
+
+  if (protectedError) {
+    return { exists: true, isProtected: false };
+  }
+
+  return { exists: true, isProtected: (protectedCount ?? 0) > 0 };
 };
 
 export const unlockNote = async (

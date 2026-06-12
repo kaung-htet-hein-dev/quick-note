@@ -64,12 +64,12 @@ const fileToDataUrl = (file: File): Promise<string> => {
 
 const insertImageFiles = async (
   files: File[],
-  noteId: string | undefined,
+  noteID: string | undefined,
   insert: (src: string, name: string) => void
 ) => {
   for (const file of files) {
-    let src: string | null = noteId
-      ? await uploadNoteImage(file, noteId)
+    let src: string | null = noteID
+      ? await uploadNoteImage(file, noteID)
       : null;
 
     if (!src) {
