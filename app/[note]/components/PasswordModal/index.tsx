@@ -5,10 +5,11 @@ import { useState } from "react";
 type PasswordModalProps = {
   isOpen: boolean;
   onCancel?: () => void;
-  onAction: (password: string) => void;
+  onAction: (password: string) => void | Promise<void>;
   title: string;
   body: string;
   actionLabel?: string;
+  isSubmitting?: boolean;
 };
 
 const PasswordModal = ({
@@ -17,7 +18,8 @@ const PasswordModal = ({
   onAction,
   title,
   body,
-  actionLabel = "Lock"
+  actionLabel = "Lock",
+  isSubmitting = false
 }: PasswordModalProps) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,8 +34,8 @@ const PasswordModal = ({
     onCancel?.();
   };
 
-  const handleLock = () => {
-    onAction(password);
+  const handleLock = async () => {
+    await onAction(password);
     setPassword("");
     setShowPassword(false);
   };
@@ -51,10 +53,15 @@ const PasswordModal = ({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Enter password"
+            disabled={isSubmitting}
             onKeyDown={(event) => {
+              if (isSubmitting) {
+                return;
+              }
+
               if (event.key === "Enter") {
                 event.preventDefault();
-                handleLock();
+                void handleLock();
               }
               if (event.key === "Escape") {
                 event.preventDefault();
@@ -67,7 +74,8 @@ const PasswordModal = ({
             type="button"
             aria-label={showPassword ? "Hide password" : "Show password"}
             onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-fg"
+            disabled={isSubmitting}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-fg disabled:cursor-not-allowed disabled:opacity-45"
           >
             {showPassword ? (
               <svg
@@ -113,18 +121,19 @@ const PasswordModal = ({
             <button
               type="button"
               onClick={handleCancel}
-              className="inline-flex h-9 items-center rounded-md border border-border px-3 text-label text-muted transition hover:bg-bg hover:text-fg"
+              disabled={isSubmitting}
+              className="inline-flex h-9 items-center rounded-md border border-border px-3 text-label text-muted transition hover:bg-bg hover:text-fg disabled:cursor-not-allowed disabled:opacity-45"
             >
               Cancel
             </button>
           )}
           <button
             type="button"
-            onClick={handleLock}
-            disabled={!password.trim()}
+            onClick={() => void handleLock()}
+            disabled={!password.trim() || isSubmitting}
             className="inline-flex h-9 items-center rounded-md border border-(--primary) bg-(--primary) px-3 text-label text-(--primary-foreground) transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
           >
-            {actionLabel}
+            {isSubmitting ? "Loading..." : actionLabel}
           </button>
         </div>
       </div>

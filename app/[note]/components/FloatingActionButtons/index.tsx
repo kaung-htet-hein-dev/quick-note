@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useNoteEditorContext } from "../../hooks/useNoteContext";
 import { updateNotePassword } from "../../utils";
+import LockIcon from "../LockIcon";
 import PasswordModal from "../PasswordModal";
 
 const FloatingActionButtons = () => {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isPasswordActionLoading, setIsPasswordActionLoading] = useState(false);
   const { noteID, isUnlocked, setIsUnlocked } = useNoteEditorContext();
 
   const onClickNew = () => {
@@ -32,32 +34,50 @@ const FloatingActionButtons = () => {
       return;
     }
 
-    const success = await updateNotePassword(noteID, password);
+    setIsPasswordActionLoading(true);
+    try {
+      const success = await updateNotePassword(noteID, password);
 
-    if (!success) {
-      alert("Failed to set password. Please try again.");
-      return;
+      if (!success) {
+        alert("Failed to set password. Please try again.");
+        return;
+      }
+
+      setIsUnlocked(true);
+      setIsPasswordModalOpen(false);
+    } finally {
+      setIsPasswordActionLoading(false);
     }
-
-    setIsUnlocked(true);
-    setIsPasswordModalOpen(false);
   };
 
   const onUnlock = async () => {
-    const success = await updateNotePassword(noteID, null);
-
-    if (!success) {
-      alert("Failed to remove password. Please try again.");
+    if (!noteID) {
       return;
     }
 
-    setIsUnlocked(false);
-    setIsPasswordModalOpen(false);
+    setIsPasswordActionLoading(true);
+    try {
+      const success = await updateNotePassword(noteID, null);
+
+      if (!success) {
+        alert("Failed to remove password. Please try again.");
+        return;
+      }
+
+      setIsUnlocked(false);
+      setIsPasswordModalOpen(false);
+    } finally {
+      setIsPasswordActionLoading(false);
+    }
   };
 
-  const passwordAction = () => {
+  const passwordAction = async () => {
+    if (isPasswordActionLoading) {
+      return;
+    }
+
     if (isUnlocked) {
-      onUnlock();
+      await onUnlock();
     } else {
       onClickLock();
     }
@@ -69,40 +89,11 @@ const FloatingActionButtons = () => {
         <button
           type="button"
           aria-label="Lock note"
-          onClick={passwordAction}
+          onClick={() => void passwordAction()}
+          disabled={isPasswordActionLoading}
           className="flex h-13 w-13 items-center justify-center rounded-full border border-border bg-surface text-fg transition-all duration-200 hover:-translate-y-0.5"
         >
-          {isUnlocked ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="h-6 w-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-              />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="size-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-              />
-            </svg>
-          )}
+          <LockIcon isUnlocked={isUnlocked} isLoading={isPasswordActionLoading} />
         </button>
 
         <button
@@ -139,6 +130,7 @@ const FloatingActionButtons = () => {
             : "Type your password to lock the note."
         }
         actionLabel={isUnlocked ? "Unlock" : "Lock"}
+        isSubmitting={isPasswordActionLoading}
       />
     </>
   );
