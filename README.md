@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Quick Note
+
+A minimal online note-taking app. Open a URL, start writing. Notes are saved automatically and can be shared with anyone via a custom slug URL.
+
+## Features
+
+- Instant notes — visiting any URL creates a note at that path
+- Auto-save with a debounced save on edit, plus a manual save button
+- Custom slug URLs — rename the note path to something memorable
+- Password protection — lock a note with a password; only those who know it can read it
+- Image support — paste or drag and drop images directly into the editor
+- Dark mode toggle persisted via localStorage
+- Rich text editing powered by Tiptap (Markdown-compatible)
+- Supabase credentials are kept server-side only; the browser never sees them
+
+## Tech Stack
+
+- [Next.js](https://nextjs.org) (App Router)
+- [Tiptap](https://tiptap.dev) rich text editor
+- [Supabase](https://supabase.com) for storage and database
+- [Tailwind CSS](https://tailwindcss.com)
+- TypeScript
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 20+
+- Yarn
+- A Supabase project with a `notes` table and a storage bucket
+
+### Supabase Setup
+
+Create a `notes` table with the following columns:
+
+| Column     | Type      | Notes                     |
+| ---------- | --------- | ------------------------- |
+| id         | uuid      | primary key, default uuid |
+| slug       | text      | unique                    |
+| content    | text      |                           |
+| password   | text      | nullable                  |
+| updated_at | timestamp |                           |
+
+Create a storage bucket (e.g. `note-attachments`) for image uploads.
+
+### Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in the values:
+
+```
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_STORAGE_BUCKET=note-attachments
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+All Supabase variables are server-side only. Do not prefix them with `NEXT_PUBLIC_`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Run Locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+yarn install
+yarn dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000). You will be redirected to a new note at a UUID path.
 
-To learn more about Next.js, take a look at the following resources:
+## Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Deploy to [Vercel](https://vercel.com) and add the four environment variables under Project Settings > Environment Variables. The app works on the free Vercel plan with the default `.vercel.app` domain.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+After deploying, update `NEXT_PUBLIC_BASE_URL` to your production URL so the sitemap and Open Graph metadata point to the correct domain.
