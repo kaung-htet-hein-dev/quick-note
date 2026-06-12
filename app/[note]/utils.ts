@@ -1,186 +1,142 @@
-import { supabase, STORAGE_BUCKET } from "@/lib/supabase";
-
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const isUuid = (value: string): boolean => UUID_REGEX.test(value);
 
+type NoteApiResponse<T> = {
+  ok: boolean;
+  data?: T;
+  message?: string;
+};
+
+const postNoteApi = async <T>(payload: unknown): Promise<T | null> => {
+  try {
+    const response = await fetch("/api/note", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const result = (await response.json()) as NoteApiResponse<T>;
+
+    if (!result.ok || result.data === undefined) {
+      return null;
+    }
+
+    return result.data;
+  } catch {
+    return null;
+  }
+};
+
 export const fetchOrCreateNote = async (
   param: string
 ): Promise<Note | null> => {
-  if (!supabase) return null;
-
-  const column = isUuid(param) ? "id" : "slug";
-
-  const { data: existing } = await supabase
-    .from("notes")
-    .select("*")
-    .eq(column, param)
-    .maybeSingle();
-
-  if (existing) return existing as Note;
-
-  const generatedId =
-    typeof globalThis.crypto?.randomUUID === "function"
-      ? globalThis.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  const noteID = isUuid(param) ? param : generatedId;
-  const noteSlug = param;
-
-  const { data: created, error: createError } = await supabase
-    .from("notes")
-    .insert({ id: noteID, slug: noteSlug, content: "" })
-    .select()
-    .single();
-
-  if (created) return created as Note;
-  if (!createError) return null;
-
-  // If insert failed due to a race condition (created elsewhere), fetch again.
-  const { data: afterInsert } = await supabase
-    .from("notes")
-    .select("*")
-    .eq(column, param)
-    .maybeSingle();
-
-  return (afterInsert as Note) ?? null;
+  return postNoteApi<Note>({ action: "fetchOrCreateNote", param });
 };
 
 export const saveNote = async (
   noteID: string,
   content: string
 ): Promise<boolean> => {
-  if (!supabase) return false;
+  const result = await postNoteApi<boolean>({
+    action: "saveNote",
+    noteIdOrSlug: noteID,
+    content
+  });
 
-  const column = isUuid(noteID) ? "id" : "slug";
-
-  const { error } = await supabase
-    .from("notes")
-    .update({ content, updated_at: new Date().toISOString() })
-    .eq(column, noteID);
-
-  return !error;
+  return result === true;
 };
 
 export const uploadNoteImage = async (
   file: File,
   noteID: string
 ): Promise<string | null> => {
-  if (!supabase) return null;
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("noteIdOrSlug", noteID);
 
-  const ext = file.name.split(".").pop() ?? "bin";
-  const path = `notes/${noteID}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const response = await fetch("/api/note/upload", {
+      method: "POST",
+      body: formData
+    });
 
-  const { error } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
+    if (!response.ok) {
+      return null;
+    }
 
-  if (error) return null;
+    const result = (await response.json()) as NoteApiResponse<{
+      publicUrl: string;
+    }>;
 
-  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+    if (!result.ok || !result.data?.publicUrl) {
+      return null;
+    }
+
+    return result.data.publicUrl;
+  } catch {
+    return null;
+  }
 };
 
 export const checkSlugExists = async (
   slug: string,
   excludeId?: string
 ): Promise<boolean> => {
-  if (!supabase) return false;
+  const result = await postNoteApi<boolean>({
+    action: "checkSlugExists",
+    slug,
+    excludeId
+  });
 
-  let query = supabase
-    .from("notes")
-    .select("id", { count: "exact" })
-    .eq("slug", slug);
-
-  if (excludeId) {
-    query = query.neq("id", excludeId);
-  }
-
-  const { count, error } = await query;
-
-  return !error && count !== null && count > 0;
+  return result === true;
 };
 
 export const updateNoteSlug = async (
   noteIdOrSlug: string,
   newSlug: string
 ): Promise<boolean> => {
-  if (!supabase) return false;
+  const result = await postNoteApi<boolean>({
+    action: "updateNoteSlug",
+    noteIdOrSlug,
+    newSlug
+  });
 
-  const column = isUuid(noteIdOrSlug) ? "id" : "slug";
-
-  const { error } = await supabase
-    .from("notes")
-    .update({ slug: newSlug, updated_at: new Date().toISOString() })
-    .eq(column, noteIdOrSlug);
-
-  return !error;
+  return result === true;
 };
 
 export const updateNotePassword = async (
   noteIdOrSlug: string,
   password: string | null
 ): Promise<boolean> => {
-  if (!supabase) return false;
+  const result = await postNoteApi<boolean>({
+    action: "updateNotePassword",
+    noteIdOrSlug,
+    password
+  });
 
-  const column = isUuid(noteIdOrSlug) ? "id" : "slug";
-
-  const { error } = await supabase
-    .from("notes")
-    .update({ password, updated_at: new Date().toISOString() })
-    .eq(column, noteIdOrSlug);
-
-  return !error;
+  return result === true;
 };
 
 export const checkExistAndProtected = async (
   noteIdOrSlug: string
 ): Promise<{ exists: boolean; isProtected: boolean }> => {
-  if (!supabase) return { exists: false, isProtected: false };
+  const result = await postNoteApi<{ exists: boolean; isProtected: boolean }>({
+    action: "checkExistAndProtected",
+    noteIdOrSlug
+  });
 
-  const column = isUuid(noteIdOrSlug) ? "id" : "slug";
-
-  const { count: existingCount, error: existingError } = await supabase
-    .from("notes")
-    .select("id", { count: "exact", head: true })
-    .eq(column, noteIdOrSlug);
-
-  if (existingError || !existingCount) {
-    return { exists: false, isProtected: false };
-  }
-
-  const { count: protectedCount, error: protectedError } = await supabase
-    .from("notes")
-    .select("id", { count: "exact", head: true })
-    .eq(column, noteIdOrSlug)
-    .not("password", "is", null);
-
-  if (protectedError) {
-    return { exists: true, isProtected: false };
-  }
-
-  return { exists: true, isProtected: (protectedCount ?? 0) > 0 };
+  return result ?? { exists: false, isProtected: false };
 };
 
 export const unlockNote = async (
   noteIdOrSlug: string,
   password: string
 ): Promise<Note | null> => {
-  if (!supabase) return null;
-
-  const column = isUuid(noteIdOrSlug) ? "id" : "slug";
-
-  const { data, error } = await supabase
-    .from("notes")
-    .select("*")
-    .eq(column, noteIdOrSlug)
-    .eq("password", password)
-    .maybeSingle();
-
-  if (error || !data) {
-    return null;
-  }
-
-  return data as Note;
+  return postNoteApi<Note>({ action: "unlockNote", noteIdOrSlug, password });
 };
